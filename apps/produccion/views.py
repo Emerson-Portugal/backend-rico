@@ -28,6 +28,7 @@ class ProductoViewSet(viewsets.ModelViewSet):
 class MaquinaViewSet(viewsets.ModelViewSet):
     queryset = Maquina.objects.all()
     serializer_class = MaquinaSerializer
+    lookup_field = 'code'
 
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
@@ -41,6 +42,7 @@ class MaquinaViewSet(viewsets.ModelViewSet):
 class TurnoViewSet(viewsets.ModelViewSet):
     queryset = Turno.objects.all()
     serializer_class = TurnoSerializer
+    lookup_field = 'code'
 
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]

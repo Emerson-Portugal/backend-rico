@@ -11,9 +11,9 @@ class ProductoSerializer(serializers.ModelSerializer):
 class MaquinaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Maquina
-        fields = ['id', 'name']
+        fields = ['id', 'code', 'name']
 
 class TurnoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Turno
-        fields = ['id', 'name', 'start_time', 'end_time']
+        fields = ['id', 'code', 'name', 'start_time', 'end_time']

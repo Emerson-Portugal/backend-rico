@@ -16,3 +16,12 @@ python manage.py runserver
 ## Crear migraciones
 python manage.py makemigrations
 python manage.py migrate
+
+
+## Ejecutar Django limpiando cache
+python manage.py clear_cache
+python manage.py runserver --noreload
+python manage.py runserver --noreload --insecure
+
+## Ejecutar Django 
+python manage.py runserver

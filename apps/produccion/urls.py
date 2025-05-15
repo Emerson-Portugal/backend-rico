@@ -44,9 +44,9 @@ urlpatterns = [
 
     # Maquinas
     path('maquinas/', maquina_list_create, name='maquina-list-create'),
-    path('maquinas/<int:pk>/', maquina_detail, name='maquina-detail'),
+    path('maquinas/<str:code>/', maquina_detail, name='maquina-detail'),
 
     # Turnos
     path('turnos/', turno_list_create, name='turno-list-create'),
-    path('turnos/<int:pk>/', turno_detail, name='turno-detail'),
+    path('turnos/<str:code>/', turno_detail, name='turno-detail'),
 ]
