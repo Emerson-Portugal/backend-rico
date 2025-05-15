@@ -2,13 +2,13 @@
 from django.db import models
 
 class Turno(models.Model):
-    nombre = models.CharField(max_length=20, choices=[
+    name = models.CharField(max_length=20, choices=[
             ('mañana', 'Mañana'),
             ('tarde', 'Tarde'),
             ('noche', 'Noche'),
         ])
-    hora_inicio = models.TimeField()
-    hora_fin = models.TimeField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
 
     def __str__(self):
-        return f"{self.nombre} ({self.hora_inicio.strftime('%H:%M')} - {self.hora_fin.strftime('%H:%M')})"
+        return f"{self.name} ({self.start_time.strftime('%H:%M')} - {self.end_time.strftime('%H:%M')})"

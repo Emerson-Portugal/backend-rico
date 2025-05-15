@@ -6,14 +6,14 @@ from .models import Producto, Maquina, Turno
 class ProductoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Producto
-        fields = ['id', 'codigo', 'nombre']
+        fields = ['id', 'code', 'name']
 
 class MaquinaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Maquina
-        fields = ['id', 'nombre']
+        fields = ['id', 'name']
 
 class TurnoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Turno
-        fields = ['id', 'nombre', 'hora_inicio', 'hora_fin']
+        fields = ['id', 'name', 'start_time', 'end_time']
