@@ -16,4 +16,4 @@ class MaquinaSerializer(serializers.ModelSerializer):
 class TurnoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Turno
-        fields = ['id', 'code', 'name', 'start_time', 'end_time']
+        fields = ['id', 'code', 'shift', 'start_time', 'end_time']
