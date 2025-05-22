@@ -5,6 +5,7 @@ from apps.produccion.models import Producto, Maquina, Turno
 
 
 class RegistroProduccionBase(models.Model):
+    
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
     maquina = models.ForeignKey(Maquina, on_delete=models.CASCADE)
     turno = models.ForeignKey(Turno, on_delete=models.CASCADE)
