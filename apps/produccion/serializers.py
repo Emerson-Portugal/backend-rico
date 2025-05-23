@@ -32,6 +32,9 @@ class RegistroR145Serializer(serializers.ModelSerializer):
         slug_field='code',
         queryset=Turno.objects.all()
     )
+    hora_inicio = serializers.TimeField(format="%H:%M", input_formats=["%H:%M"])
+    hora_fin = serializers.TimeField(format="%H:%M", input_formats=["%H:%M"])
+    extension_hora = serializers.TimeField(format="%H:%M", input_formats=["%H:%M"])
 
     class Meta:
         model = RegistroR145
