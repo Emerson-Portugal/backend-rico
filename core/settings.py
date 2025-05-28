@@ -83,10 +83,10 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'dbRico',
-        'USER': 'postgres',
-        'PASSWORD': 'admin',
-        'HOST': 'localhost',
+        'NAME': 'db_rico',
+        'USER': 'db_rico_user',
+        'PASSWORD': 'dxiIk72Cw8WUP0RrSF8dQnYulh1t6PWb',
+        'HOST': 'dpg-d0roor6mcj7s73d5nkog-a.oregon-postgres.render.com',
         'PORT': '5432',
     }
 }
