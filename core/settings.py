@@ -150,10 +150,7 @@ REST_FRAMEWORK = {
 }
 
 
-# CORS CONFIGURATION
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:4200",
-]
+
 
 # Solo si quieres permitir TODO temporalmente en desarrollo (alternativa)
 CORS_ALLOW_ALL_ORIGINS = True

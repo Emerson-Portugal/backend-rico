@@ -7,6 +7,7 @@ from .models import CustomUser
 from .serializers import UserSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import AllowAny
 
 
 @api_view(['POST'])
@@ -27,6 +28,7 @@ def login(request):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def register(request):
     serializer = UserSerializer(data=request.data)
     if serializer.is_valid():
