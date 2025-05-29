@@ -3,7 +3,7 @@ name: Deploy Django App to DigitalOcean
 on:
   push:
     branches:
-      - main  # o 'develop', según tu flujo
+      - develop  # o 'develop', según tu flujo
 
 jobs:
   deploy:
