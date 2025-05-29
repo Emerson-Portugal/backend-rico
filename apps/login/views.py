@@ -11,6 +11,7 @@ from rest_framework.permissions import AllowAny
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def login(request):
     user = get_object_or_404(CustomUser, username=request.data['username'])
     if not user.check_password(request.data['password']):
