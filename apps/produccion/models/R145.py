@@ -4,7 +4,7 @@ from django.db import models
 
 from apps.produccion.models import RegistroProduccionBase
 from core import settings
-from apps.produccion.utils import generate_code
+from apps.produccion.utils.code_generator import generate_code
 
 
 # La R145-1 y R145-2 

@@ -1,7 +1,8 @@
-# produccion/models.py
+# produccion/models/maquina.py
 from django.db import models
 
-from apps.produccion.utils import generate_code
+# ✅ Importa directamente desde el archivo, sin pasar por __init__.py
+from apps.produccion.utils.code_generator import generate_code
 
 class Maquina(models.Model):
     code = models.CharField(max_length=4, unique=True, editable=False, null=True)

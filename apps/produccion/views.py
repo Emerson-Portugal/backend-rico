@@ -1,18 +1,15 @@
 from django.utils import timezone
-
 from django.forms import ValidationError
 from rest_framework import viewsets, permissions, status
 from django.db.models import Q
-
-
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
-
 from apps.produccion.models import Producto, Maquina, Turno, RegistroR145
-from .serializers import ProductoSerializer, MaquinaSerializer, TurnoSerializer, RegistroR145Serializer
+from apps.produccion.models.turno import AsignacionTurno, TurnoTrabajo
+from .serializers import AsignacionTurnoSerializer, ProductoSerializer, MaquinaSerializer, TurnoSerializer, RegistroR145Serializer, TurnoTrabajoSerializer
 from .pagination import CustomPagination
-
-
+from apps.produccion.utils.turno_utils import obtener_usuarios_en_turno_actual, obtener_turno_actual
+from apps.produccion.utils.notificaciones import notificar_a_usuarios
 from rest_framework.response import Response
 
 
@@ -57,6 +54,39 @@ class TurnoViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         data = self.get_serializer(instance).data
         return Response({"data": data})
+
+
+class TurnoTrabajoViewSet(viewsets.ModelViewSet):
+    queryset = TurnoTrabajo.objects.all()
+    serializer_class = TurnoTrabajoSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    pagination_class = CustomPagination
+
+class AsignacionTurnoViewSet(viewsets.ModelViewSet):
+    queryset = AsignacionTurno.objects.all()
+    serializer_class = AsignacionTurnoSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    pagination_class = CustomPagination
+
+    def perform_create(self, serializer):
+        usuario = serializer.validated_data['usuario']
+        turno_trabajo = serializer.validated_data['turno_trabajo']
+
+        # Validar que el usuario no esté asignado dos veces el mismo día
+        if AsignacionTurno.objects.filter(
+            turno_trabajo__fecha=turno_trabajo.fecha,
+            usuario=usuario
+        ).exists():
+            raise ValidationError("Este usuario ya está asignado a un turno ese día.")
+
+        serializer.save()
+
+
+
+
+
 
 
 class RegistroR145ViewSet(viewsets.ModelViewSet):
@@ -112,6 +142,15 @@ class RegistroR145ViewSet(viewsets.ModelViewSet):
             fecha_operario=timezone.now()
         )
 
+        # 🔔 Notificar a revisadores del turno actual
+        # Dentro de perform_create en RegistroR145ViewSet
+        usuarios_turno = obtener_usuarios_en_turno_actual()
+        print("📌 Usuarios en turno actual:", usuarios_turno)
+        if usuarios_turno and usuarios_turno['REVISADOR']:
+            notificar_a_usuarios(usuarios_turno['REVISADOR'], "Un nuevo producto ha sido registrado para revisión.")
+
+
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -123,23 +162,37 @@ class RegistroR145ViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         user = request.user
 
+        # Dentro de perform_create en RegistroR145ViewSet
+        usuarios_turno = obtener_usuarios_en_turno_actual()
+        print("📌 Usuarios en turno actual:", usuarios_turno)
+        if usuarios_turno and usuarios_turno['REVISADOR']:
+            notificar_a_usuarios(usuarios_turno['REVISADOR'], "Un nuevo producto ha sido registrado para revisión.")
+
+
         # Fase de revisión
         if user.role == 'REVISADOR' and instance.fase == 'OPERARIO':
             instance.fase = 'REVISADOR'
             instance.estado = 'EN_PROCESO'
             instance.revisador = user
             instance.fecha_revisador = timezone.now()
-        # Fase de auxiliar
+
+            if usuarios_turno and usuarios_turno['AUXILIAR']:
+                notificar_a_usuarios(usuarios_turno['AUXILIAR'], "Un producto ha sido revisado y está listo para finalizar.")
+        
+        # Fase de finalización
         elif user.role == 'AUXILIAR' and instance.fase == 'REVISADOR':
             instance.fase = 'FINALIZADO'
             instance.estado = 'FINALIZADO'
             instance.auxiliar = user
             instance.fecha_auxiliar = timezone.now()
+
+            if usuarios_turno and usuarios_turno['OPERADOR']:
+                notificar_a_usuarios(usuarios_turno['OPERADOR'], "Un producto ha sido finalizado. Puedes registrar uno nuevo.")
+        
         else:
             return Response({"error": "No puedes modificar este producto en esta fase."}, status=403)
 
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        data = serializer.data
-        return Response({"data": data})
+        return Response({"data": serializer.data})

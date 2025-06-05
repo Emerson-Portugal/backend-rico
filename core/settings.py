@@ -1,3 +1,4 @@
+#core/settings.py
 from pathlib import Path
 from corsheaders.defaults import default_headers
 
@@ -30,6 +31,7 @@ DJANGO_APPS = [
     'django_extensions',
 ]
 PROJECT_APPS = [
+    'channels',
     'apps.login',
     'apps.produccion',
 ]
@@ -41,6 +43,23 @@ THIRD_PARTY_APPS = [
 ]
 INSTALLED_APPS = DJANGO_APPS + PROJECT_APPS + THIRD_PARTY_APPS
 
+ASGI_APPLICATION = 'core.asgi.application'
+
+# Para desarrollo: usar el canal memory backend
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    },
+}
+
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels_redis.core.RedisChannelLayer",
+#         "CONFIG": {
+#             "hosts": [("127.0.0.1", 6379)],
+#         },
+#     },
+# }
 
 
 MIDDLEWARE = [
@@ -84,10 +103,10 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'db_rico',
-        'USER': 'db_rico_user',
-        'PASSWORD': 'dxiIk72Cw8WUP0RrSF8dQnYulh1t6PWb',
-        'HOST': 'dpg-d0roor6mcj7s73d5nkog-a.oregon-postgres.render.com',
+        'NAME': 'dbRico',
+        'USER': 'postgres',
+        'PASSWORD': 'admin',
+        'HOST': 'localhost',
         'PORT': '5432',
     }
 }
@@ -115,9 +134,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'en-es'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Lima'  # o la zona que corresponda
 
 USE_I18N = True
 

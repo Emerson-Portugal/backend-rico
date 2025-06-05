@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import ProductoViewSet, MaquinaViewSet, TurnoViewSet, RegistroR145ViewSet
+from .views import ProductoViewSet, MaquinaViewSet, TurnoViewSet, RegistroR145ViewSet, TurnoTrabajoViewSet, AsignacionTurnoViewSet
 
 # Producto
 producto_detail = ProductoViewSet.as_view({
@@ -49,6 +49,28 @@ registro_list_create = RegistroR145ViewSet.as_view({
     'post': 'create'
 })
 
+# TurnoTrabajo
+turno_trabajo_list_create = TurnoTrabajoViewSet.as_view({
+    'get': 'list',
+    'post': 'create'
+})
+turno_trabajo_detail = TurnoTrabajoViewSet.as_view({
+    'get': 'retrieve',
+    'put': 'update',
+    'delete': 'destroy'
+})
+
+# AsignacionTurno
+asignacion_list_create = AsignacionTurnoViewSet.as_view({
+    'get': 'list',
+    'post': 'create'
+})
+asignacion_detail = AsignacionTurnoViewSet.as_view({
+    'get': 'retrieve',
+    'put': 'update',
+    'delete': 'destroy'
+})
+
 urlpatterns = [
     # Productos
     path('productos/', producto_list_create, name='producto-list-create'),
@@ -65,4 +87,11 @@ urlpatterns = [
         # Registros de Producción R145
     path('registrosR145/', registro_list_create, name='registror145-list-create'),
     path('registrosR145/<str:code>/', registro_detail, name='registror145-detail'),
+
+     path('turnos-trabajo/', turno_trabajo_list_create, name='turno-trabajo-list-create'),
+    path('turnos-trabajo/<int:pk>/', turno_trabajo_detail, name='turno-trabajo-detail'),
+
+    path('asignaciones-turno/', asignacion_list_create, name='asignacion-turno-list-create'),
+    path('asignaciones-turno/<int:pk>/', asignacion_detail, name='asignacion-turno-detail'),
 ]
+
