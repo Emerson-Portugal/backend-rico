@@ -15,7 +15,7 @@ from django.contrib.auth import get_user_model
 class ProductoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Producto
-        fields = ['id', 'code', 'name']
+        fields = ['id', 'code', 'name', 'type']
 
 class MaquinaSerializer(serializers.ModelSerializer):
     class Meta:

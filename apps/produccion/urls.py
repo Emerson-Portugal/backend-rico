@@ -70,6 +70,9 @@ asignacion_detail = AsignacionTurnoViewSet.as_view({
     'put': 'update',
     'delete': 'destroy'
 })
+asignacion_por_usuario = AsignacionTurnoViewSet.as_view({
+    'get': 'por_usuario'
+})
 
 urlpatterns = [
     # Productos
@@ -93,5 +96,6 @@ urlpatterns = [
 
     path('asignaciones-turno/', asignacion_list_create, name='asignacion-turno-list-create'),
     path('asignaciones-turno/<int:pk>/', asignacion_detail, name='asignacion-turno-detail'),
+        path('asignaciones-turno/por-usuario/<str:username>/', asignacion_por_usuario, name='asignacion-turno-por-usuario'),
 ]
 

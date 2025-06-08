@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.forms import ValidationError
 from rest_framework import viewsets, permissions, status
@@ -6,11 +7,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 from apps.produccion.models import Producto, Maquina, Turno, RegistroR145
 from apps.produccion.models.turno import AsignacionTurno, TurnoTrabajo
-from .serializers import AsignacionTurnoSerializer, ProductoSerializer, MaquinaSerializer, TurnoSerializer, RegistroR145Serializer, TurnoTrabajoSerializer
+from .serializers import AsignacionTurnoSerializer, ProductoSerializer, MaquinaSerializer, TurnoSerializer, RegistroR145Serializer, TurnoTrabajoSerializer, User
 from .pagination import CustomPagination
 from apps.produccion.utils.turno_utils import obtener_usuarios_en_turno_actual, obtener_turno_actual
 from apps.produccion.utils.notificaciones import notificar_a_usuarios
 from rest_framework.response import Response
+from rest_framework.decorators import action
 
 
 class ProductoViewSet(viewsets.ModelViewSet):
@@ -74,14 +76,23 @@ class AsignacionTurnoViewSet(viewsets.ModelViewSet):
         usuario = serializer.validated_data['usuario']
         turno_trabajo = serializer.validated_data['turno_trabajo']
 
-        # Validar que el usuario no esté asignado dos veces el mismo día
         if AsignacionTurno.objects.filter(
             turno_trabajo__fecha=turno_trabajo.fecha,
             usuario=usuario
         ).exists():
             raise ValidationError("Este usuario ya está asignado a un turno ese día.")
-
         serializer.save()
+
+    @action(detail=False, url_path='por-usuario/(?P<username>[^/.]+)', methods=['get'])
+    def por_usuario(self, request, username=None):
+        usuario = get_object_or_404(User, username=username)
+        asignaciones = AsignacionTurno.objects.filter(usuario=usuario)
+        page = self.paginate_queryset(asignaciones)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(asignaciones, many=True)
+        return Response(serializer.data)
 
 
 
