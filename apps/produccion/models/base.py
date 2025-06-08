@@ -13,7 +13,7 @@ class RegistroProduccionBase(models.Model):
     fecha = models.DateField()
     hora_inicio = models.TimeField()
     hora_fin = models.TimeField()
-    unidad_kilos = models.DecimalField(max_digits=10, decimal_places=2)
+    unidad_kilos = models.DecimalField(max_digits=10, decimal_places=2, null=True)
 
 
 

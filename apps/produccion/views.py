@@ -86,113 +86,165 @@ class AsignacionTurnoViewSet(viewsets.ModelViewSet):
 
 
 
-
-
-
+		
 class RegistroR145ViewSet(viewsets.ModelViewSet):
     queryset = RegistroR145.objects.all()
     serializer_class = RegistroR145Serializer
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
     pagination_class = CustomPagination
-
     lookup_field = 'code'
 
     def get_queryset(self):
         user = self.request.user
+
         if user.role == 'OPERADOR':
             return RegistroR145.objects.filter(operario=user)
+
         elif user.role == 'REVISADOR':
-            return RegistroR145.objects.filter(Q(fase='OPERARIO') | Q(revisador=user))
+            # Solo ve productos oficialmente en fase REVISADOR
+            return RegistroR145.objects.filter(fase='REVISADOR')
+
         elif user.role == 'AUXILIAR':
-            return RegistroR145.objects.filter(Q(fase='REVISADOR') | Q(auxiliar=user))
-        else:
-            return RegistroR145.objects.all()
+            # AUXILIAR ve productos en fase OPERARIO o REVISADOR, o donde participó
+            return RegistroR145.objects.filter(
+                Q(fase__in=['OPERARIO', 'REVISADOR'])
+            )
+
+        return RegistroR145.objects.none()
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
-
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            # Pasa solo la lista al paginated_response
-            return self.get_paginated_response(serializer.data)
-
-        serializer = self.get_serializer(queryset, many=True)
-        data = serializer.data
-        return Response({"data": data})
+        serializer = self.get_serializer(page if page is not None else queryset, many=True)
+        return self.get_paginated_response(serializer.data) if page is not None else Response({"data": serializer.data})
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
-        data = serializer.data
-        return Response({"data": data})
+        return Response({"data": serializer.data})
 
     def perform_create(self, serializer):
         user = self.request.user
 
         if user.role != 'OPERADOR':
             raise ValidationError("Solo los operarios pueden registrar productos.")
-        if RegistroR145.objects.filter(operario=user).exclude(fase='FINALIZADO').exists():
-            raise ValidationError("Debes finalizar el producto anterior antes de registrar uno nuevo.")
+
+        # Verificar que el operario no tenga productos sin finalizar
+        productos_pendientes = RegistroR145.objects.filter(
+            operario=user
+        ).exclude(fase='FINALIZADO')
+
+        for prod in productos_pendientes:
+            if not (prod.recor and prod.peso and prod.dm and prod.vacio):
+                raise ValidationError("Debes esperar a que el producto anterior sea completamente revisado y finalizado.")
 
         serializer.save(
             operario=user,
             fase='OPERARIO',
+            estado='EN_PROCESO',
             fecha_operario=timezone.now()
         )
 
-        # 🔔 Notificar a revisadores del turno actual
-        # Dentro de perform_create en RegistroR145ViewSet
         usuarios_turno = obtener_usuarios_en_turno_actual()
-        print("📌 Usuarios en turno actual:", usuarios_turno)
-        if usuarios_turno and usuarios_turno['REVISADOR']:
-            notificar_a_usuarios(usuarios_turno['REVISADOR'], "Un nuevo producto ha sido registrado para revisión.")
-
-
+        if usuarios_turno:
+            if usuarios_turno.get('AUXILIAR'):
+                notificar_a_usuarios(usuarios_turno['AUXILIAR'], "🟢 Se ha creado un nuevo producto. Puedes empezar a llenar D.M. y Vacío.")
+            if usuarios_turno.get('SUPERVISOR'):
+                notificar_a_usuarios(usuarios_turno['SUPERVISOR'], "🟢 Un operario ha registrado un nuevo producto.")
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
-        data = serializer.data
-        return Response({"data": data})
+        return Response({"data": serializer.data})
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
         user = request.user
-
-        # Dentro de perform_create en RegistroR145ViewSet
+        data = request.data
         usuarios_turno = obtener_usuarios_en_turno_actual()
-        print("📌 Usuarios en turno actual:", usuarios_turno)
-        if usuarios_turno and usuarios_turno['REVISADOR']:
-            notificar_a_usuarios(usuarios_turno['REVISADOR'], "Un nuevo producto ha sido registrado para revisión.")
 
-
-        # Fase de revisión
-        if user.role == 'REVISADOR' and instance.fase == 'OPERARIO':
+        # OPERADOR finaliza la fase OPERARIO → pasa a REVISADOR
+        if user.role == 'OPERADOR' and instance.fase == 'OPERARIO':
+            instance.hora_fin = data.get('hora_fin')
+            instance.unidades_kilos = data.get('unidades_kilos')
+            instance.golpe = data.get('golpe')
+            instance.fecha_operario_fin = timezone.now()
             instance.fase = 'REVISADOR'
-            instance.estado = 'EN_PROCESO'
+
+            if usuarios_turno:
+                if usuarios_turno.get('REVISADOR'):
+                    notificar_a_usuarios(usuarios_turno['REVISADOR'], "🔵 Producto listo para revisión.")
+                if usuarios_turno.get('AUXILIAR'):
+                    notificar_a_usuarios(usuarios_turno['AUXILIAR'], "🔵 Producto en revisión. Finaliza tu parte si no lo hiciste.")
+                if usuarios_turno.get('SUPERVISOR'):
+                    notificar_a_usuarios(usuarios_turno['SUPERVISOR'], "🔵 Un producto ha sido terminado por el operario.")
+
+        # REVISADOR revisa el producto en fase REVISADOR
+        elif user.role == 'REVISADOR':
+            if instance.fase != 'REVISADOR':
+                return Response({"error": "No puedes revisar este producto hasta que la fase REVISADOR inicie."}, status=403)
+
+            instance.recor = data.get('recor')
+            instance.peso = data.get('peso')
             instance.revisador = user
             instance.fecha_revisador = timezone.now()
 
-            if usuarios_turno and usuarios_turno['AUXILIAR']:
-                notificar_a_usuarios(usuarios_turno['AUXILIAR'], "Un producto ha sido revisado y está listo para finalizar.")
-        
-        # Fase de finalización
-        elif user.role == 'AUXILIAR' and instance.fase == 'REVISADOR':
-            instance.fase = 'FINALIZADO'
-            instance.estado = 'FINALIZADO'
-            instance.auxiliar = user
-            instance.fecha_auxiliar = timezone.now()
 
-            if usuarios_turno and usuarios_turno['OPERADOR']:
-                notificar_a_usuarios(usuarios_turno['OPERADOR'], "Un producto ha sido finalizado. Puedes registrar uno nuevo.")
-        
+            if usuarios_turno:
+                if usuarios_turno.get('OPERADOR'):
+                    notificar_a_usuarios(usuarios_turno['OPERADOR'], "🔵 Producto ha sido revisado por el Revisador")
+                if usuarios_turno.get('AUXILIAR'):
+                    notificar_a_usuarios(usuarios_turno['AUXILIAR'], "🔵 Producto ha sido revisado por el Revisador")
+                if usuarios_turno.get('SUPERVISOR'):
+                    notificar_a_usuarios(usuarios_turno['SUPERVISOR'], "🔵 Producto ha sido revisado por el Revisador")
+
+
+        # AUXILIAR puede completar D.M. y Vacío en fase OPERARIO o REVISADOR
+        elif user.role == 'AUXILIAR':
+            if instance.fase not in ['OPERARIO', 'REVISADOR']:
+                return Response({"error": "No puedes editar este producto en esta fase."}, status=403)
+
+            instance.dm = data.get('dm', instance.dm)
+            instance.vacio = data.get('vacio', instance.vacio)
+            instance.auxiliar = user
+
+            if not instance.fecha_auxiliar:
+                instance.fecha_auxiliar = timezone.now()
+
+            if usuarios_turno:
+                if usuarios_turno.get('OPERADOR'):
+                    notificar_a_usuarios(usuarios_turno['OPERADOR'], "🔵 Producto ha sido revisado por el Auxiliar")
+                if usuarios_turno.get('REVISADOR'):
+                    notificar_a_usuarios(usuarios_turno['REVISADOR'], "🔵 Producto ha sido revisado por el Auxiliar")
+                if usuarios_turno.get('SUPERVISOR'):
+                    notificar_a_usuarios(usuarios_turno['SUPERVISOR'], "🔵 Producto ha sido revisado por el Auxiliar")
+
         else:
             return Response({"error": "No puedes modificar este producto en esta fase."}, status=403)
 
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        # Finalización automática cuando todos han completado
+        if all([instance.recor, instance.peso, instance.dm, instance.vacio]):
+            instance.fase = 'FINALIZADO'
+            instance.estado = 'FINALIZADO'
+
+            if usuarios_turno:
+                if usuarios_turno.get('OPERADOR'):
+                    notificar_a_usuarios(usuarios_turno['OPERADOR'], "✅ Producto finalizado. Ya puedes registrar uno nuevo.")
+                if usuarios_turno.get('AUXILIAR'):
+                    notificar_a_usuarios(usuarios_turno['AUXILIAR'], "🔵 Producto finalizado.")
+                if usuarios_turno.get('REVISADOR'):
+                    notificar_a_usuarios(usuarios_turno['REVISADOR'], "🔵 Producto finalizado.")
+
+        serializer = self.get_serializer(instance, data=data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"data": serializer.data})
+
+
+
+
+
+
+

@@ -22,21 +22,22 @@ class RegistroR145(RegistroProduccionBase):
             super().save(*args, **kwargs)
 
 
-    lote_anio = models.CharField(max_length=4)
-    lote_sem = models.CharField(max_length=2)
-    lote_dme = models.CharField(max_length=10)
+    lote_anio = models.CharField(max_length=4, blank=True, null=True)
+    lote_sem = models.CharField(max_length=2, blank=True, null=True)
+    lote_dme = models.CharField(max_length=10, blank=True, null=True)
+
+    extension_dia = models.CharField(max_length=2, blank=True, null=True)
+    extension_dmp = models.CharField(max_length=10, blank=True, null=True)
+    extension_hora = models.TimeField(blank=True, null=True)
+    vencimiento = models.DateField(blank=True, null=True)
     
-    extension_dia = models.CharField(max_length=2)
-    extension_dmp = models.CharField(max_length=10)
-    extension_hora = models.TimeField()
-    vencimiento = models.DateField()
+    golpe = models.IntegerField(default=0, null=True)
+    recor = models.CharField(max_length=10, blank=True, null=True)
 
-    golpe = models.IntegerField(default=0)
-    recor = models.CharField(max_length=10)
+    peso = models.CharField(max_length=10, blank=True, null=True)
+    vacio = models.CharField(max_length=10, blank=True, null=True)
+    dm = models.CharField(max_length=10, blank=True, null=True)
 
-    peso = models.CharField(max_length=10)
-    vacio = models.CharField(max_length=10)
-    dm = models.CharField(max_length=10)
 
 
    # Fases
