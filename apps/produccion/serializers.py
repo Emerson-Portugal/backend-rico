@@ -27,27 +27,46 @@ class TurnoSerializer(serializers.ModelSerializer):
         model = Turno
         fields = ['id', 'code', 'shift', 'start_time', 'end_time']
 
+
+
 class TurnoTrabajoSerializer(serializers.ModelSerializer):
-    # Para escritura (input): acepta solo el `code` del turno
+    # Escritura: acepta solo el código del turno
     turno = serializers.SlugRelatedField(
         slug_field='code',
         queryset=Turno.objects.all(),
         write_only=True
     )
 
-    # Para lectura (output): retorna todo el turno anidado
+    # Lectura: retorna todo el objeto turno anidado
     turno_obj = TurnoSerializer(source='turno', read_only=True)
 
     class Meta:
         model = TurnoTrabajo
-        fields = ['id', 'fecha', 'turno', 'turno_obj', 'code']
+        fields = ['id', 'fecha_inicio', 'fecha_fin', 'turno', 'turno_obj', 'code']
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)
-
-        # renombrar 'turno_obj' a 'turno' en la salida
+        # Renombrar la salida de 'turno_obj' como 'turno'
         rep['turno'] = rep.pop('turno_obj', None)
         return rep
+
+    def validate(self, data):
+        fecha_inicio = data.get('fecha_inicio')
+        fecha_fin = data.get('fecha_fin')
+
+        if fecha_inicio and fecha_fin:
+            diferencia = (fecha_fin - fecha_inicio).days
+
+            if diferencia < 1:
+                raise serializers.ValidationError({
+                    'fecha_fin': "La fecha de fin debe ser al menos 1 día después de la fecha de inicio."
+                })
+            if diferencia > 7:
+                raise serializers.ValidationError({
+                    'fecha_fin': "La fecha de fin no puede ser más de 7 días después de la fecha de inicio."
+                })
+
+        return data
 
 
 
@@ -85,18 +104,23 @@ class AsignacionTurnoSerializer(serializers.ModelSerializer):
 
 
 class RegistroR145Serializer(serializers.ModelSerializer):
+    # Escritura: solo se envía el código
     producto = serializers.SlugRelatedField(
         slug_field='code',
-        queryset=Producto.objects.all()
+        queryset=Producto.objects.all(),
+        write_only=True
     )
-    maquina = serializers.SlugRelatedField(
-        slug_field='code',
-        queryset=Maquina.objects.all()
-    )
-    turno = serializers.SlugRelatedField(
-        slug_field='code',
-        queryset=Turno.objects.all()
-    )
+
+    # Lectura: se muestra todo el objeto producto
+    producto_obj = ProductoSerializer(source='producto', read_only=True)
+
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        # Renombrar la salida de 'turno_obj' como 'turno'
+        rep['producto'] = rep.pop('producto_obj', None)
+        return rep
+
+
 
     operario = UserSerializer(read_only=True)
     revisador = UserSerializer(read_only=True)

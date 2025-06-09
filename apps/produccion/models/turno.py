@@ -29,6 +29,9 @@ class Turno(models.Model):
 class TurnoTrabajo(models.Model):
     code = models.CharField(max_length=4, unique=True, editable=False, null=True)
 
+    fecha_inicio = models.DateField()
+    fecha_fin = models.DateField()
+    turno = models.ForeignKey(Turno, on_delete=models.CASCADE)
 
     def save(self, *args, **kwargs):
         if not self.code:
@@ -37,9 +40,6 @@ class TurnoTrabajo(models.Model):
                 self.code = generate_code()
         super().save(*args, **kwargs)
 
-
-    fecha = models.DateField()
-    turno = models.ForeignKey(Turno, on_delete=models.CASCADE)
 
 
 

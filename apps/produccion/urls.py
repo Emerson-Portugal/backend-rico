@@ -91,11 +91,11 @@ urlpatterns = [
     path('registrosR145/', registro_list_create, name='registror145-list-create'),
     path('registrosR145/<str:code>/', registro_detail, name='registror145-detail'),
 
-     path('turnos-trabajo/', turno_trabajo_list_create, name='turno-trabajo-list-create'),
-    path('turnos-trabajo/<int:pk>/', turno_trabajo_detail, name='turno-trabajo-detail'),
+    path('turnos-trabajo/', turno_trabajo_list_create, name='turno-trabajo-list-create'),
+    path('turnos-trabajo/<str:code>/', turno_trabajo_detail, name='turno-trabajo-detail'),
 
     path('asignaciones-turno/', asignacion_list_create, name='asignacion-turno-list-create'),
-    path('asignaciones-turno/<int:pk>/', asignacion_detail, name='asignacion-turno-detail'),
-        path('asignaciones-turno/por-usuario/<str:username>/', asignacion_por_usuario, name='asignacion-turno-por-usuario'),
+    path('asignaciones-turno/<str:code>/', asignacion_detail, name='asignacion-turno-detail'),
+    path('asignaciones-turno/por-usuario/<str:username>/', asignacion_por_usuario, name='asignacion-turno-por-usuario'),
 ]
 

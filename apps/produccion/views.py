@@ -61,14 +61,36 @@ class TurnoViewSet(viewsets.ModelViewSet):
 class TurnoTrabajoViewSet(viewsets.ModelViewSet):
     queryset = TurnoTrabajo.objects.all()
     serializer_class = TurnoTrabajoSerializer
+    lookup_field = 'code'
+
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
     pagination_class = CustomPagination
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        data = self.get_serializer(instance).data
+        return Response({"data": data})
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            data = self.get_serializer(page, many=True).data
+            return self.get_paginated_response(data)
+
+        data = self.get_serializer(queryset, many=True).data
+        return Response({"data": data})
+
+
 
 class AsignacionTurnoViewSet(viewsets.ModelViewSet):
     queryset = AsignacionTurno.objects.all()
     serializer_class = AsignacionTurnoSerializer
     authentication_classes = [TokenAuthentication]
+    lookup_field = 'code'
+
     permission_classes = [IsAuthenticated]
     pagination_class = CustomPagination
 
@@ -77,22 +99,40 @@ class AsignacionTurnoViewSet(viewsets.ModelViewSet):
         turno_trabajo = serializer.validated_data['turno_trabajo']
 
         if AsignacionTurno.objects.filter(
-            turno_trabajo__fecha=turno_trabajo.fecha,
+            turno_trabajo=turno_trabajo,
             usuario=usuario
         ).exists():
-            raise ValidationError("Este usuario ya está asignado a un turno ese día.")
+            raise ValidationError("Este usuario ya está asignado a ese turno de trabajo.")
         serializer.save()
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        data = self.get_serializer(instance).data
+        return Response({"data": data})
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+
+        if page is not None:
+            data = self.get_serializer(page, many=True).data
+            return self.get_paginated_response(data)
+
+        data = self.get_serializer(queryset, many=True).data
+        return Response({"data": data})
 
     @action(detail=False, url_path='por-usuario/(?P<username>[^/.]+)', methods=['get'])
     def por_usuario(self, request, username=None):
         usuario = get_object_or_404(User, username=username)
         asignaciones = AsignacionTurno.objects.filter(usuario=usuario)
         page = self.paginate_queryset(asignaciones)
+
         if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        serializer = self.get_serializer(asignaciones, many=True)
-        return Response(serializer.data)
+            data = self.get_serializer(page, many=True).data
+            return self.get_paginated_response(data)
+
+        data = self.get_serializer(asignaciones, many=True).data
+        return Response({"data": data})
 
 
 
