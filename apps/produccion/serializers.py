@@ -10,6 +10,7 @@ from .models import Turno, TurnoTrabajo, AsignacionTurno
 
 from django.contrib.auth import get_user_model
 
+User = get_user_model()
 
 
 class ProductoSerializer(serializers.ModelSerializer):
@@ -71,10 +72,9 @@ class TurnoTrabajoSerializer(serializers.ModelSerializer):
 
 
 
-User = get_user_model()
+
 
 class AsignacionTurnoSerializer(serializers.ModelSerializer):
-    role = serializers.CharField(source='usuario.role', read_only=True)
 
     turno_trabajo = serializers.SlugRelatedField(
         slug_field='code',
