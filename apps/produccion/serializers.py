@@ -114,12 +114,22 @@ class RegistroR145Serializer(serializers.ModelSerializer):
     # Lectura: se muestra todo el objeto producto
     producto_obj = ProductoSerializer(source='producto', read_only=True)
 
+    # Escritura: solo se envía el código
+    turno = serializers.SlugRelatedField(
+        slug_field='code',
+        queryset=AsignacionTurno.objects.all(),
+        write_only=True
+    )
+
+    # Lectura: se muestra todo el objeto turno
+    turno_obj = AsignacionTurnoSerializer(source='turno', read_only=True)
+
     def to_representation(self, instance):
         rep = super().to_representation(instance)
-        # Renombrar la salida de 'turno_obj' como 'turno'
+        # Renombrar producto_obj y turno_obj
         rep['producto'] = rep.pop('producto_obj', None)
+        rep['turno'] = rep.pop('turno_obj', None)
         return rep
-
 
 
     operario = UserSerializer(read_only=True)

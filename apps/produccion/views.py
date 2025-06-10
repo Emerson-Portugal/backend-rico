@@ -9,10 +9,12 @@ from apps.produccion.models import Producto, Maquina, Turno, RegistroR145
 from apps.produccion.models.turno import AsignacionTurno, TurnoTrabajo
 from .serializers import AsignacionTurnoSerializer, ProductoSerializer, MaquinaSerializer, TurnoSerializer, RegistroR145Serializer, TurnoTrabajoSerializer, User
 from .pagination import CustomPagination
-from apps.produccion.utils.turno_utils import obtener_usuarios_en_turno_actual, obtener_turno_actual
+from apps.produccion.utils.turno_utils import obtener_usuarios_en_turno_actual, obtener_asignacion_usuario_en_turno_actual
 from apps.produccion.utils.notificaciones import notificar_a_usuarios
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
+
 
 
 class ProductoViewSet(viewsets.ModelViewSet):
@@ -181,6 +183,11 @@ class RegistroR145ViewSet(viewsets.ModelViewSet):
         if user.role != 'OPERADOR':
             raise ValidationError("Solo los operarios pueden registrar productos.")
 
+        # Validar que el usuario está en un turno activo ahora
+        asignacion_turno = obtener_asignacion_usuario_en_turno_actual(user)
+        if not asignacion_turno:
+            raise ValidationError("No estás en tu turno asignado en este momento. No puedes registrar productos ahora.")
+
         # Verificar que el operario no tenga productos sin finalizar
         productos_pendientes = RegistroR145.objects.filter(
             operario=user
@@ -188,21 +195,23 @@ class RegistroR145ViewSet(viewsets.ModelViewSet):
 
         for prod in productos_pendientes:
             if not (prod.recor and prod.peso and prod.dm and prod.vacio):
-                raise ValidationError("Debes esperar a que el producto anterior sea completamente revisado y finalizado.")
+                raise ValidationError({
+                    'detalle': "Debes esperar a que el producto anterior sea completamente revisado y finalizado."
+                })
 
         serializer.save(
             operario=user,
+            turno=asignacion_turno,  # importante: guarda la asignación de turno usada
             fase='OPERARIO',
             estado='EN_PROCESO',
             fecha_operario=timezone.now()
         )
 
         usuarios_turno = obtener_usuarios_en_turno_actual()
-        if usuarios_turno:
-            if usuarios_turno.get('AUXILIAR'):
-                notificar_a_usuarios(usuarios_turno['AUXILIAR'], "🟢 Se ha creado un nuevo producto. Puedes empezar a llenar D.M. y Vacío.")
-            if usuarios_turno.get('SUPERVISOR'):
-                notificar_a_usuarios(usuarios_turno['SUPERVISOR'], "🟢 Un operario ha registrado un nuevo producto.")
+        if usuarios_turno.get('AUXILIAR'):
+            notificar_a_usuarios(usuarios_turno['AUXILIAR'], "🟢 Se ha creado un nuevo producto. Puedes empezar a llenar D.M. y Vacío.")
+        if usuarios_turno.get('SUPERVISOR'):
+            notificar_a_usuarios(usuarios_turno['SUPERVISOR'], "🟢 Un operario ha registrado un nuevo producto.")
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

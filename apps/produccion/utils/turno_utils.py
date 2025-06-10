@@ -1,49 +1,68 @@
 # apps/produccion/utils/turno_utils.py
 
-from datetime import time
 from django.utils.timezone import localtime
-import apps.produccion.models.turno as turno_models
+from apps.produccion.models.turno import AsignacionTurno
+from datetime import time
 
 
-def obtener_turno_actual():
+def esta_dentro_del_rango(hora_actual, inicio, fin):
     """
-    Devuelve el TurnoTrabajo actual según la hora local.
+    Evalúa si hora_actual está entre inicio y fin.
+    Soporta rangos que cruzan medianoche.
     """
-    ahora = localtime().time()
-    hoy = localtime().date()
+    if inicio < fin:
+        return inicio <= hora_actual <= fin
+    else:
+        return hora_actual >= inicio or hora_actual <= fin
 
-    
 
-    turnos_de_hoy = turno_models.TurnoTrabajo.objects.select_related('turno').filter(fecha=hoy)
+def obtener_asignacion_usuario_en_turno_actual(usuario):
+    """
+    Devuelve la asignación de turno del usuario si está activa y dentro del horario.
+    """
+    ahora = localtime()
+    hora_actual = ahora.time()
+    fecha_actual = ahora.date()
 
-    print(f"⏰ Ahora: {ahora}, Fecha: {hoy}")
-    for turno_trabajo in turnos_de_hoy:
-        print(f"🔍 Evaluando: {turno_trabajo.turno.shift} ({turno_trabajo.turno.start_time} - {turno_trabajo.turno.end_time})")
-        if turno_trabajo.turno.start_time <= ahora <= turno_trabajo.turno.end_time:
-            return turno_trabajo
+    asignaciones = AsignacionTurno.objects.select_related('turno_trabajo__turno').filter(
+        usuario=usuario,
+        turno_trabajo__fecha_inicio__lte=fecha_actual,
+        turno_trabajo__fecha_fin__gte=fecha_actual,
+    )
+
+    for asignacion in asignaciones:
+        turno = asignacion.turno_trabajo.turno
+        if esta_dentro_del_rango(hora_actual, turno.start_time, turno.end_time):
+            return asignacion  # solo una válida
 
     return None
 
 
 def obtener_usuarios_en_turno_actual():
     """
-    Devuelve un diccionario con usuarios por rol que están asignados al turno actual.
+    Devuelve un diccionario con usuarios por rol que están en un turno activo.
     """
-    turno_actual = obtener_turno_actual()
-    if not turno_actual:
-        return None
+    ahora = localtime()
+    hora_actual = ahora.time()
+    fecha_actual = ahora.date()
 
-    asignaciones = turno_actual.asignacionturno_set.select_related('usuario')
+    asignaciones = AsignacionTurno.objects.select_related('turno_trabajo__turno', 'usuario').filter(
+        turno_trabajo__fecha_inicio__lte=fecha_actual,
+        turno_trabajo__fecha_fin__gte=fecha_actual,
+    )
 
     usuarios_por_rol = {
         'OPERADOR': [],
         'REVISADOR': [],
-        'AUXILIAR': []
+        'AUXILIAR': [],
+        'SUPERVISOR': [],
     }
 
     for asignacion in asignaciones:
-        rol = asignacion.usuario.role.upper()  # Asegúrate que los roles estén en mayúsculas
-        if rol in usuarios_por_rol:
-            usuarios_por_rol[rol].append(asignacion.usuario)
+        turno = asignacion.turno_trabajo.turno
+        if esta_dentro_del_rango(hora_actual, turno.start_time, turno.end_time):
+            rol = asignacion.usuario.role.upper()
+            if rol in usuarios_por_rol:
+                usuarios_por_rol[rol].append(asignacion.usuario)
 
     return usuarios_por_rol

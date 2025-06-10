@@ -1,14 +1,14 @@
 # produccion/models.py
 from django.db import models
 
-from apps.produccion.models import Producto, Maquina, Turno
+from apps.produccion.models import Producto, AsignacionTurno
 
 
 class RegistroProduccionBase(models.Model):
     
     producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
     maquina = models.TextField(blank=True)
-    turno = models.TextField(blank=True)
+    turno = models.ForeignKey(AsignacionTurno, on_delete=models.CASCADE)
 
     fecha = models.DateField()
     hora_inicio = models.TimeField()
