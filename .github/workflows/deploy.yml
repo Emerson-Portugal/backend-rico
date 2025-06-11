@@ -1,4 +1,4 @@
-name: Deploy Django App to DigitalOcean
+name: Deploy Django App to DigitalOcean with Django and Uvicorn
 
 on:
   push:
