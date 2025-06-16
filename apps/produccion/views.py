@@ -21,16 +21,19 @@ class ProductoViewSet(viewsets.ModelViewSet):
     queryset = Producto.objects.all()
     serializer_class = ProductoSerializer
     lookup_field = 'code'
-
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
     pagination_class = CustomPagination
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        name = self.request.query_params.get('name')
-        if name:
-            queryset = queryset.filter(name__icontains=name)
+        search_term = self.request.query_params.get('search')
+
+        if search_term:
+            queryset = queryset.filter(
+                Q(name__icontains=search_term) |
+                Q(code__icontains=search_term)
+            )
         return queryset
 
     def retrieve(self, request, *args, **kwargs):
