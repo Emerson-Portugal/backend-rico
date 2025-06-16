@@ -16,7 +16,7 @@ User = get_user_model()
 class ProductoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Producto
-        fields = ['id', 'code', 'name', 'type']
+        fields = ['id', 'code', 'name', 'day', 'type']
 
 class MaquinaSerializer(serializers.ModelSerializer):
     class Meta:
