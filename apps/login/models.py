@@ -9,4 +9,11 @@ class CustomUser(AbstractUser):
         ('SUPERVISOR', 'SUPERVISOR'),
         ('OPERADOR', 'OPERADOR'),
     ]
+
+    username = None  # Eliminamos username
+    email = models.EmailField(unique=True)
+    full_name = models.CharField(max_length=150)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['full_name', 'role']
