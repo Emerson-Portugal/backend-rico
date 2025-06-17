@@ -16,17 +16,17 @@ from rest_framework.permissions import AllowAny
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login(request):
-    email = request.data.get('email')
+    username = request.data.get('username')
     password = request.data.get('password')
 
-    if not email or not password:
+    if not username or not password:
         return Response(
-            {"error": "Email and password are required."},
+            {"error": "Username and password are required."},
             status=status.HTTP_400_BAD_REQUEST
         )
 
     try:
-        user = CustomUser.objects.get(email=email)
+        user = CustomUser.objects.get(username=username)
     except CustomUser.DoesNotExist:
         return Response(
             {"error": "User does not exist."},
@@ -50,13 +50,18 @@ def login(request):
     }, status=status.HTTP_200_OK)
 
 
-
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):
     serializer = UserSerializer(data=request.data)
     if serializer.is_valid():
-        user = serializer.save()
+        user = CustomUser(
+            username=serializer.validated_data['username'],
+            role=serializer.validated_data['role']
+        )
+        user.set_password(serializer.validated_data['password'])
+        user.save()
+
         token = Token.objects.create(user=user)
 
         return Response({
@@ -69,14 +74,13 @@ def register(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def profile(request):
     return Response({
         "data": {
-            "email": request.user.email,
+            "username": request.user.username,
             "full_name": request.user.full_name,
             "role": request.user.role
         },
@@ -120,8 +124,8 @@ def update_user(request, user_id):
     #   return Response({"error": "Unauthorized"}, status=403)
 
     data = request.data
-    if 'email' in data:
-        user.email = data['email']
+    if 'username' in data:
+        user.username = data['username']
     if 'role' in data:
         user.role = data['role']
     if 'password' in data:

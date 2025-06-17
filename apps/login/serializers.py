@@ -4,13 +4,14 @@ from .models import CustomUser
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ['id', 'email', 'full_name', 'role', 'password']
+        fields = ['id', 'username', 'full_name', 'role', 'password']
         extra_kwargs = {
-            'password': {'write_only': True}
+            'password': {'write_only': True}  # ⚠️ Solo se puede escribir, no leer
         }
 
     def create(self, validated_data):
-        return CustomUser.objects.create_user(**validated_data)
+        user = CustomUser.objects.create_user(**validated_data)
+        return user
 
     def update(self, instance, validated_data):
         password = validated_data.pop('password', None)
@@ -20,4 +21,3 @@ class UserSerializer(serializers.ModelSerializer):
             instance.set_password(password)
         instance.save()
         return instance
-
