@@ -57,6 +57,7 @@ def register(request):
     if serializer.is_valid():
         user = CustomUser(
             username=serializer.validated_data['username'],
+            full_name=serializer.validated_data['full_name'],
             role=serializer.validated_data['role']
         )
         user.set_password(serializer.validated_data['password'])
